@@ -1,0 +1,69 @@
+cmake_minimum_required(VERSION 3.26)
+project(prototipo_de_bomba_de_insulina_esp32)
+
+set(CMAKE_CXX_STANDARD 14)
+
+include_directories(.)
+
+include_directories(lib)
+
+add_executable(prototipo_de_bomba_de_insulina_esp32
+        FFIP.cpp
+        lib/ESP32Servo/src/analogWrite.cpp
+        lib/ESP32Servo/src/ESP32PWM.cpp
+        lib/ESP32Servo/src/ESP32Servo.cpp
+        lib/ESP32Servo/src/ESP32Tone.cpp
+        lib/BLE/src/BLE2902.cpp
+        lib/BLE/src/BLE2902.h
+        lib/BLE/src/BLE2904.cpp
+        lib/BLE/src/BLE2904.h
+        lib/BLE/src/BLEAddress.cpp
+        lib/BLE/src/BLEAddress.h
+        lib/BLE/src/BLEAdvertisedDevice.cpp
+        lib/BLE/src/BLEAdvertisedDevice.h
+        lib/BLE/src/BLEAdvertising.cpp
+        lib/BLE/src/BLEAdvertising.h
+        lib/BLE/src/BLEBeacon.cpp
+        lib/BLE/src/BLEBeacon.h
+        lib/BLE/src/BLECharacteristic.cpp
+        lib/BLE/src/BLECharacteristic.h
+        lib/BLE/src/BLECharacteristicMap.cpp
+        lib/BLE/src/BLEClient.cpp
+        lib/BLE/src/BLEClient.h
+        lib/BLE/src/BLEDescriptor.cpp
+        lib/BLE/src/BLEDescriptor.h
+        lib/BLE/src/BLEDescriptorMap.cpp
+        lib/BLE/src/BLEDevice.cpp
+        lib/BLE/src/BLEEddystoneTLM.cpp
+        lib/BLE/src/BLEEddystoneTLM.h
+        lib/BLE/src/BLEEddystoneURL.cpp
+        lib/BLE/src/BLEEddystoneURL.h
+        lib/BLE/src/BLEExceptions.cpp
+        lib/BLE/src/BLEExceptions.h
+        lib/BLE/src/BLEHIDDevice.cpp
+        lib/BLE/src/BLEHIDDevice.h
+        lib/BLE/src/BLERemoteCharacteristic.cpp
+        lib/BLE/src/BLERemoteCharacteristic.h
+        lib/BLE/src/BLERemoteDescriptor.cpp
+        lib/BLE/src/BLERemoteDescriptor.h
+        lib/BLE/src/BLERemoteService.cpp
+        lib/BLE/src/BLERemoteService.h
+        lib/BLE/src/BLEScan.cpp
+        lib/BLE/src/BLEScan.h
+        lib/BLE/src/BLESecurity.cpp
+        lib/BLE/src/BLESecurity.h
+        lib/BLE/src/BLEServer.cpp
+        lib/BLE/src/BLEService.cpp
+        lib/BLE/src/BLEService.h
+        lib/BLE/src/BLEServiceMap.cpp
+        lib/BLE/src/BLEUtils.cpp
+        lib/BLE/src/BLEUUID.cpp
+        lib/BLE/src/BLEUUID.h
+        lib/BLE/src/BLEValue.cpp
+        lib/BLE/src/BLEValue.h
+        lib/BLE/src/FreeRTOS.cpp
+        lib/BLE/src/GeneralUtils.cpp
+        lib/BLE/src/GeneralUtils.h
+        lib/BLE/src/HIDKeyboardTypes.h
+        lib/BLE/src/HIDTypes.h
+        lib/BLE/src/RTOS.h)

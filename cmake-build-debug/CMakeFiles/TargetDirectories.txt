@@ -1,0 +1,3 @@
+C:/Users/vinic/workspace/projeto-de-conclusao-de-curso/prototipo-de-bomba-de-insulina-esp32/cmake-build-debug/CMakeFiles/prototipo_de_bomba_de_insulina_esp32.dir
+C:/Users/vinic/workspace/projeto-de-conclusao-de-curso/prototipo-de-bomba-de-insulina-esp32/cmake-build-debug/CMakeFiles/edit_cache.dir
+C:/Users/vinic/workspace/projeto-de-conclusao-de-curso/prototipo-de-bomba-de-insulina-esp32/cmake-build-debug/CMakeFiles/rebuild_cache.dir

@@ -1,0 +1,4 @@
+C:\Users\vinic\AppData\Local\Programs\CLion\bin\cmake\win\x64\bin\cmake.exe -DCMAKE_BUILD_TYPE=Debug -DCMAKE_MAKE_PROGRAM=C:/Users/vinic/AppData/Local/Programs/CLion/bin/ninja/win/x64/ninja.exe -G Ninja -S C:\Users\vinic\workspace\projeto-de-conclusao-de-curso\prototipo-de-bomba-de-insulina-esp32 -B C:\Users\vinic\workspace\projeto-de-conclusao-de-curso\prototipo-de-bomba-de-insulina-esp32\cmake-build-debug
+-- Configuring done (0.1s)
+-- Generating done (0.0s)
+-- Build files have been written to: C:/Users/vinic/workspace/projeto-de-conclusao-de-curso/prototipo-de-bomba-de-insulina-esp32/cmake-build-debug
