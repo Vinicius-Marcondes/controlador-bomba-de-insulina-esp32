@@ -1,7 +1,6 @@
 #include <Arduino.h>
 #include <BLEDevice.h>
 #include <BLEServer.h>
-#include <BLEAddress.h>
 #include <BLE2902.h>
 #include <ESP32Servo.h>
 #include <Preferences.h>
@@ -27,27 +26,26 @@ BLECharacteristic* pPumpStatusCharacteristic = nullptr;
 BLECharacteristic* pInsulinCharacteristic = nullptr;
 
 uint32_t status = 0;
-
- int pos;
+int pos;
 
 TaskHandle_t statusTask;
 
 void sendPumpStatus(void*);
 void setupBluethoothAuth();
 
-class MyServerCallbacks : public BLEServerCallbacks {
-    void onConnect(BLEServer* pServer) {
+class FreeFlowServerCallbacks : public BLEServerCallbacks {
+    void onConnect(BLEServer* pServer) override {
         Serial.println("Conectado!");
         BLEDevice::startAdvertising();
-    };
+    }
 
-    void onDisconnect(BLEServer* pServer) {
-        Serial.println("desconectado!");
+    void onDisconnect(BLEServer* pServer) override {
+        Serial.println("Desconectado!");
     }
 };
 
-class MyCallbacks : public BLECharacteristicCallbacks {
-    void onWrite(BLECharacteristic* pCharacteristic) {
+class FreeFlowInsulinCallbacks : public BLECharacteristicCallbacks {
+    void onWrite(BLECharacteristic* pCharacteristic) override {
         if (pPumpStatusCharacteristic->getValue() == "0") {
             Serial.println("Bloqueio bomba");
             pPumpStatusCharacteristic->setValue("1");
@@ -58,10 +56,9 @@ class MyCallbacks : public BLECharacteristicCallbacks {
             Serial.print("Recebido: ");
             Serial.println(value);
 
-            if ((value + pos) < 125) {
+            if (value + pos < 125) {
                 Serial.println("aplicando insulina");
-                int i = pos;
-                for (; i <= value; ++i) {
+                for (int i = pos; i <= value; ++i) {
                     digitalWrite(LED_BUILTIN, HIGH);
                     servo.write(i);
                     ++pos;
@@ -94,12 +91,12 @@ void setup() {
     BLEDevice::setEncryptionLevel(ESP_BLE_SEC_ENCRYPT);
 
     pServer = BLEDevice::createServer();
-    pServer->setCallbacks(new MyServerCallbacks());
+    pServer->setCallbacks(new FreeFlowServerCallbacks());
     BLEService* pService = pServer->createService(SERVICE_UUID);
 
     pInsulinCharacteristic = pService->createCharacteristic(
             CHARACTERISTIC_UUID, BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE);
-    pInsulinCharacteristic->setCallbacks(new MyCallbacks());
+    pInsulinCharacteristic->setCallbacks(new FreeFlowInsulinCallbacks());
     pInsulinCharacteristic->addDescriptor(new BLE2902());
 
     pPumpStatusCharacteristic = pService->createCharacteristic(
@@ -132,7 +129,7 @@ void setup() {
     delay(500);
 
     preferences.begin("freeFlow", false);
-    pos = preferences.getUInt("pos", 0);
+    pos = preferences.getInt("pos", 0);
 
     Serial.println("Configurando servo motor...");
     servo.setPeriodHertz(50);  // Standard 50hz servo
@@ -149,7 +146,7 @@ void setup() {
 }
 
 void sendPumpStatus(void*) {
-    for (;;) {
+    while (true) {
         pPumpStatusCharacteristic->notify();
         delay(1000);
     }
