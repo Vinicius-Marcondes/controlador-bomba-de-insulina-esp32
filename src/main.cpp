@@ -10,8 +10,10 @@
 #define CHARACTERISTIC_UUID "2ec829c3-efad-4ba2-8ce1-bad71b1040f7"
 #define PUMP_STATUS_CHARACTERISTIC_UUID "1cd909de-3a8e-43e1-a492-82917ab0b662"
 
-#define uS_TO_S_FACTOR 1000000  //Conversion factor for micro seconds to seconds
+#define uS_TO_S_FACTOR 1000000  // Fator de conversão de micro segundos para segundos
 #define TIME_TO_SLEEP  15
+
+#define STATIC_PIN 123456
 
 #define SERVO_PIN 33
 #define LED_BUILTIN 2
@@ -26,11 +28,12 @@ BLECharacteristic* pInsulinCharacteristic = nullptr;
 
 uint32_t status = 0;
 
-RTC_DATA_ATTR int pos = 0;
+ int pos;
 
 TaskHandle_t statusTask;
 
 void sendPumpStatus(void*);
+void setupBluethoothAuth();
 
 class MyServerCallbacks : public BLEServerCallbacks {
     void onConnect(BLEServer* pServer) {
@@ -50,20 +53,23 @@ class MyCallbacks : public BLECharacteristicCallbacks {
             pPumpStatusCharacteristic->setValue("1");
             pPumpStatusCharacteristic->notify();
 
-            int value = std::floor(std::stoi(pCharacteristic->getValue())* 2.5);
+            const int value = std::floor(std::stoi(pCharacteristic->getValue()) * 2.5);
+
             Serial.print("Recebido: ");
             Serial.println(value);
 
             if ((value + pos) < 125) {
                 Serial.println("aplicando insulina");
-                for (int i = pos; i <= value; ++i) {
+                int i = pos;
+                for (; i <= value; ++i) {
                     digitalWrite(LED_BUILTIN, HIGH);
-                    ++pos;
                     servo.write(i);
-                    delay(100);
+                    ++pos;
+                    delay(900);
                     digitalWrite(LED_BUILTIN, LOW);
+                    delay(100);
                 }
-                preferences.putUInt("counter", pos);
+                preferences.putUInt("pos", pos);
 
                 pPumpStatusCharacteristic->setValue("0");
                 pPumpStatusCharacteristic->notify();
@@ -85,9 +91,10 @@ void setup() {
     Serial.println("Configurando bluethooth...");
 
     BLEDevice::init("FreeFlowInsulinPump-esp32-v2");
+    BLEDevice::setEncryptionLevel(ESP_BLE_SEC_ENCRYPT);
+
     pServer = BLEDevice::createServer();
     pServer->setCallbacks(new MyServerCallbacks());
-
     BLEService* pService = pServer->createService(SERVICE_UUID);
 
     pInsulinCharacteristic = pService->createCharacteristic(
@@ -106,6 +113,11 @@ void setup() {
     pAdvertising->setMinPreferred(0x12);
     BLEDevice::startAdvertising();
 
+    BLESecurity* pSecurity = new BLESecurity();
+    pSecurity->setAuthenticationMode(ESP_LE_AUTH_REQ_SC_BOND);
+    pSecurity->setCapability(ESP_IO_CAP_OUT);
+    pSecurity->setStaticPIN(STATIC_PIN);
+
     pPumpStatusCharacteristic->setValue("0");
     pPumpStatusCharacteristic->notify();
 
@@ -120,27 +132,20 @@ void setup() {
     delay(500);
 
     preferences.begin("freeFlow", false);
-    pos = preferences.getUInt("stock", 0);
-
+    pos = preferences.getUInt("pos", 0);
 
     Serial.println("Configurando servo motor...");
     servo.setPeriodHertz(50);  // Standard 50hz servo
     servo.attach(SERVO_PIN);
     servo.write(pos);
 
-    Serial.printf("Bomba iniciada na posicao: %d", pos);
+    Serial.printf("Bomba iniciada na posicao: %d\n", pos);
 
     pinMode(LED_BUILTIN, OUTPUT);
 
-    while(pServer->getConnectedCount()) {
-        esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
-        Serial.println("depois deep sleep");
-    }
+    esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
+
     delay(10000);
-
-    Serial.println("Setup ESP32 to sleep for every " + String(TIME_TO_SLEEP) +" Seconds");
-
-    esp_deep_sleep_start();
 }
 
 void sendPumpStatus(void*) {
@@ -151,4 +156,8 @@ void sendPumpStatus(void*) {
 }
 
 void loop() {
+    if (pServer->getConnectedCount() == 0) {
+        Serial.println("Desligando...");
+        esp_deep_sleep_start();
+    }
 }
