@@ -8,6 +8,7 @@
 #define SERVICE_UUID "f69317b5-a6b2-4cf4-89e6-9c7d98be8891"
 #define CHARACTERISTIC_UUID "2ec829c3-efad-4ba2-8ce1-bad71b1040f7"
 #define PUMP_STATUS_CHARACTERISTIC_UUID "1cd909de-3a8e-43e1-a492-82917ab0b662"
+#define PUMP_STOCK_CHARACTERISTIC_UUID "00324946-0c86-448e-b82b-ceb07b9e535e"
 
 #define uS_TO_S_FACTOR 1000000  // Fator de conversão de micro segundos para segundos
 #define TIME_TO_SLEEP  15
@@ -24,6 +25,7 @@ Servo servo;
 BLEServer* pServer = nullptr;
 BLECharacteristic* pPumpStatusCharacteristic = nullptr;
 BLECharacteristic* pInsulinCharacteristic = nullptr;
+BLECharacteristic* pStockCharacteristic = nullptr;
 
 uint32_t status = 0;
 int pos;
@@ -31,15 +33,14 @@ int pos;
 TaskHandle_t statusTask;
 
 void sendPumpStatus(void*);
-void setupBluethoothAuth();
 
 class FreeFlowServerCallbacks : public BLEServerCallbacks {
-    void onConnect(BLEServer* pServer) override {
+    void onConnect(BLEServer* server) override {
         Serial.println("Conectado!");
         BLEDevice::startAdvertising();
     }
 
-    void onDisconnect(BLEServer* pServer) override {
+    void onDisconnect(BLEServer* server) override {
         Serial.println("Desconectado!");
     }
 };
@@ -57,8 +58,8 @@ class FreeFlowInsulinCallbacks : public BLECharacteristicCallbacks {
             Serial.println(value);
 
             if (value + pos < 125) {
-                Serial.println("aplicando insulina");
                 for (int i = pos; i <= value; ++i) {
+                    Serial.println("aplicando insulina");
                     digitalWrite(LED_BUILTIN, HIGH);
                     servo.write(i);
                     ++pos;
@@ -66,7 +67,8 @@ class FreeFlowInsulinCallbacks : public BLECharacteristicCallbacks {
                     digitalWrite(LED_BUILTIN, LOW);
                     delay(100);
                 }
-                preferences.putUInt("pos", pos);
+                preferences.putInt("pos", pos);
+                delay(100);
 
                 pPumpStatusCharacteristic->setValue("0");
                 pPumpStatusCharacteristic->notify();
@@ -80,6 +82,22 @@ class FreeFlowInsulinCallbacks : public BLECharacteristicCallbacks {
             Serial.println("Bomba ocupada");
         }
         delay(1000);
+    }
+};
+
+class FreeFlowStockCallbacks : public BLECharacteristicCallbacks {
+public:
+    void onWrite(BLECharacteristic *pCharacteristic) override {
+        pos = 0;
+        preferences.putUInt("pos", pos);
+        for (int i = 0; i < 3; ++i) {
+            digitalWrite(LED_BUILTIN, HIGH);
+            delay(1000);
+            digitalWrite(LED_BUILTIN, LOW);
+            delay(1000);
+        }
+        servo.write(pos);
+        status = 0;
     }
 };
 
@@ -101,6 +119,12 @@ void setup() {
 
     pPumpStatusCharacteristic = pService->createCharacteristic(
             PUMP_STATUS_CHARACTERISTIC_UUID, BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_NOTIFY);
+    pPumpStatusCharacteristic->addDescriptor(new BLE2902());
+
+    pStockCharacteristic = pService->createCharacteristic(
+            PUMP_STOCK_CHARACTERISTIC_UUID, BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE | BLECharacteristic::PROPERTY_NOTIFY);
+    pStockCharacteristic->setCallbacks(new FreeFlowStockCallbacks());
+    pStockCharacteristic->addDescriptor(new BLE2902());
 
     pService->start();
 
@@ -111,7 +135,7 @@ void setup() {
     BLEDevice::startAdvertising();
 
     BLESecurity* pSecurity = new BLESecurity();
-    pSecurity->setAuthenticationMode(ESP_LE_AUTH_REQ_SC_BOND);
+    pSecurity->setAuthenticationMode(ESP_LE_AUTH_REQ_SC_MITM);
     pSecurity->setCapability(ESP_IO_CAP_OUT);
     pSecurity->setStaticPIN(STATIC_PIN);
 
@@ -155,6 +179,7 @@ void sendPumpStatus(void*) {
 void loop() {
     if (pServer->getConnectedCount() == 0) {
         Serial.println("Desligando...");
+        delay(1000);
         esp_deep_sleep_start();
     }
 }
