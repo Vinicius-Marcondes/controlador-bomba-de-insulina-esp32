@@ -52,24 +52,20 @@ class FreeFlowInsulinCallbacks : public BLECharacteristicCallbacks {
             pPumpStatusCharacteristic->setValue("1");
             pPumpStatusCharacteristic->notify();
 
-            const int value = std::floor(std::stoi(pCharacteristic->getValue()) * 2.5);
+            const int value = std::floor(std::stoi(pCharacteristic->getValue()) * 3.5);
 
             Serial.print("Recebido: ");
             Serial.println(value);
 
-            if (value + pos < 125) {
+            if (value + pos < 178) {
                 for (int i = pos; i <= value; ++i) {
-                    Serial.println("aplicando insulina");
-                    digitalWrite(LED_BUILTIN, HIGH);
+                    Serial.println(i);
                     servo.write(i);
-                    ++pos;
-                    delay(900);
-                    digitalWrite(LED_BUILTIN, LOW);
+                    pos++;
                     delay(100);
                 }
+                Serial.println("insulina aplicada");
                 preferences.putInt("pos", pos);
-                delay(100);
-
                 pPumpStatusCharacteristic->setValue("0");
                 pPumpStatusCharacteristic->notify();
                 Serial.println("bomba liberada");
@@ -92,9 +88,9 @@ public:
         preferences.putUInt("pos", pos);
         for (int i = 0; i < 3; ++i) {
             digitalWrite(LED_BUILTIN, HIGH);
-            delay(1000);
+            delay(500);
             digitalWrite(LED_BUILTIN, LOW);
-            delay(1000);
+            delay(500);
         }
         servo.write(pos);
         status = 0;
@@ -135,7 +131,7 @@ void setup() {
     BLEDevice::startAdvertising();
 
     BLESecurity* pSecurity = new BLESecurity();
-    pSecurity->setAuthenticationMode(ESP_LE_AUTH_REQ_SC_MITM);
+    pSecurity->setAuthenticationMode(ESP_LE_AUTH_BOND);
     pSecurity->setCapability(ESP_IO_CAP_OUT);
     pSecurity->setStaticPIN(STATIC_PIN);
 
@@ -156,6 +152,10 @@ void setup() {
     pos = preferences.getInt("pos", 0);
 
     Serial.println("Configurando servo motor...");
+    ESP32PWM::allocateTimer(0);
+    ESP32PWM::allocateTimer(1);
+    ESP32PWM::allocateTimer(2);
+    ESP32PWM::allocateTimer(3);
     servo.setPeriodHertz(50);  // Standard 50hz servo
     servo.attach(SERVO_PIN);
     servo.write(pos);
@@ -182,4 +182,5 @@ void loop() {
         delay(1000);
         esp_deep_sleep_start();
     }
+    delay(100);
 }
